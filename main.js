@@ -76,11 +76,10 @@ class WebSocketClient {
     }
 
     disconnect() {
-        this.shouldReconnect = false;
+        this.shouldReconnect = true;
         if (this.socket) {
             this.socket.close();
         }
-        log.info("WebSocket connection manually closed.");
     }
 }
 
@@ -121,7 +120,7 @@ async function registerNode(token, proxy = null) {
             log.info(`Retrying in 10 seconds...`);
             await new Promise(resolve => setTimeout(resolve, 10000));
             retries++;
-            await registerNode();
+            await registerNode(token, proxy);
         } else {
             log.error("Max retries exceeded; giving up on registration.");
             return null;
@@ -142,6 +141,8 @@ async function confirmUser(token) {
 }
 
 async function getUserInfo(token, proxy = null) {
+    const maxRetries = 3;
+    let retries = 0;
     const agent = proxy ? new HttpsProxyAgent(proxy) : null;
     try {
         const response = await fetch("https://api.mygate.network/api/front/users/me", {
@@ -157,10 +158,48 @@ async function getUserInfo(token, proxy = null) {
         }
         const data = await response.json();
         const { name, status, _id, levels, currentPoint } = data.data;
-        log.info("User info:", { name, status, _id, levels, currentPoint });
+        return { name, status, _id, levels, currentPoint };
     } catch (error) {
-        log.error("Error getting user info:", error.message);
-        return { error: error.message };
+        if (retries < maxRetries) {
+            log.info(`Retrying in 10 seconds...`);
+            await new Promise(resolve => setTimeout(resolve, 10000));
+            retries++;
+            await getUserInfo(token, proxy);
+        } else {
+            log.error("Max retries exceeded; giving up on getting user info.");
+            return { error: error.message };
+        }
+    }
+}
+async function getUserNode(token, proxy = null) {
+    const maxRetries = 3;
+    let retries = 0;
+    const agent = proxy ? new HttpsProxyAgent(proxy) : null;
+    try {
+        const response = await fetch("https://api.mygate.network/api/front/nodes?limit=10&page=1", {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+            },
+            agent: agent,
+        });
+        if (!response.ok) {
+            log.error(`Failed to get user nodes with status ${response.status}`);
+            return;
+        }
+        const data = await response.json();
+        const nodeUUIDs = data.data.items.map(item => item.id);
+        return nodeUUIDs;
+    } catch (error) {
+        if (retries < maxRetries) {
+            log.info(`Retrying in 10 seconds...`);
+            await new Promise(resolve => setTimeout(resolve, 10000));
+            retries++;
+            await getUserNode(token, proxy);
+        } else {
+            log.error("Max retries exceeded; giving up on getting user nodes.");
+            return [];
+        }
     }
 }
 
@@ -175,25 +214,44 @@ async function main() {
         for (let i = 0; i < tokens.length; i++) {
             const token = tokens[i];
             const proxy = proxies.length > 0 ? proxies[proxyIndex] : null;
-            proxyIndex = (proxyIndex + 1) % proxies.length;
-
-            await confirmUser(token)
-            setInterval(async () => {
-                await getUserInfo(token);
-            }, 10 * 60 * 1000);
-
-            log.info("Trying to open new connection using proxy:", proxy || "No Proxy");
-            const uuid = await registerNode(token, proxy);
-            if (!uuid) {
-                log.error("Failed to register node; skipping WebSocket connection.");
-                continue;
+            if (proxies.length > 0) {
+                proxyIndex = (proxyIndex + 1) % proxies.length;
             }
 
-            const client = new WebSocketClient(token, proxy, uuid);
-            client.connect();
-            await getUserInfo(token);
+            let nodes = await getUserNode(token, proxy);
+
+            if (nodes && nodes.length > 0) {
+                log.info(`Active user nodes:`, nodes.length);
+            } else {
+                log.info("This account has no nodes - registering new node...");
+                const uuid = await registerNode(token, proxy);
+                if (!uuid) {
+                    log.error("Failed to register node - skipping WebSocket connection.");
+                    continue;
+                }
+                nodes = [uuid];
+            }
+
+            await confirmUser(token);
+            setInterval(async () => {
+                const users = await getUserInfo(token);
+                log.info("User info:", { Active_Nodes: nodes.length, users });
+            }, 15 * 60 * 1000); // Get user info every 15 minutes
+
+            for (const node of nodes) {
+                log.info("Trying to open new connection using proxy:", proxy || "No Proxy");
+                const client = new WebSocketClient(token, proxy, node);
+                client.connect();
+
+                setInterval(() => {
+                    client.disconnect();
+                }, 10 * 60 * 1000); // Auto reconnect node every 10 minutes
+            }
+
+            const users = await getUserInfo(token);
+            log.info("User info:", { Active_Nodes: nodes.length, users });
         }
-        log.info("All accounts connections established. just leave it running.");
+        log.info("All accounts connections established - Just leave it running.");
     } catch (error) {
         log.error("Error in WebSocket connections:", error.message);
     }
