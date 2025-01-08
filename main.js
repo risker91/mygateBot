@@ -367,6 +367,6 @@ async function main() {
     } catch (error) {
         log.error("Error in WebSocket connections:", error.message);
     }
-}
-
+};
+//run
 main();
