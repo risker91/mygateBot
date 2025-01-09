@@ -7,6 +7,22 @@ import fs from 'fs';
 import log from './utils/logger.js';
 import bedduSalama from './utils/banner.js';
 
+const headers = {
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Encoding": "gzip, deflate, br, zstd",
+    "Accept-Language": "en-US,en;q=0.9,id;q=0.8",
+    "Origin": "https://app.mygate.network",
+    "Priority": "u=1, i",
+    "Referer": "https://app.mygate.network/",
+    "Sec-CH-UA": '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+    "Sec-CH-UA-Mobile": "?0",
+    "Sec-CH-UA-Platform": '"Windows"',
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-site",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+};
+
 function readFile(pathFile) {
     try {
         const datas = fs.readFileSync(pathFile, 'utf8')
@@ -119,7 +135,7 @@ async function registerNode(token, proxy = null) {
                 payload,
                 {
                     headers: {
-                        "Content-Type": "application/json",
+                        ...headers,
                         "Authorization": `Bearer ${token}`,
                     },
                     agent: agent,
@@ -150,6 +166,7 @@ async function confirmUser(token, proxy = null) {
             {},
             {
                 headers: {
+                    ...headers,
                     "Authorization": `Bearer ${token}`,
                 },
                 agent: agent,
@@ -172,6 +189,7 @@ const getQuestsList = async (token, proxy = null) => {
         try {
             const response = await axios.get("https://api.mygate.network/api/front/achievements/ambassador", {
                 headers: {
+                    ...headers,
                     "Authorization": `Bearer ${token}`,
                 },
                 agent: agent,
@@ -204,6 +222,7 @@ async function submitQuest(token, proxy = null, questId) {
                 {},
                 {
                     headers: {
+                        ...headers,
                         "Authorization": `Bearer ${token}`,
                     },
                     agent: agent,
@@ -234,6 +253,7 @@ async function getUserInfo(token, proxy = null) {
         try {
             const response = await axios.get("https://api.mygate.network/api/front/users/me", {
                 headers: {
+                    ...headers,
                     "Authorization": `Bearer ${token}`,
                 },
                 agent: agent,
@@ -264,6 +284,7 @@ async function getUserNode(token, proxy = null) {
                 "https://api.mygate.network/api/front/nodes?limit=10&page=1",
                 {
                     headers: {
+                        ...headers,
                         "Authorization": `Bearer ${token}`,
                     },
                     agent: agent,
