@@ -380,7 +380,7 @@ async function main() {
             setInterval(async () => {
                 const users = await getUserInfo(token);
                 log.info(`User info for account #${index + 1}:`, { Active_Nodes: nodes.length, users });
-            }, 11 * 60 * 1000); // Get user info every 15 minutes
+            }, 11 * 60 * 1000); // Get user info every 11 minutes
 
             await Promise.all(nodes.map(node => {
                 log.info(`Trying to open new connection for account #${index + 1} using proxy:`, proxy || "No Proxy");
