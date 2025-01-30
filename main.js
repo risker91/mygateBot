@@ -6,6 +6,7 @@ import { SocksProxyAgent } from 'socks-proxy-agent';
 import fs from 'fs';
 import log from './utils/logger.js';
 import bedduSalama from './utils/banner.js';
+import getSignature from './utils/sign.js';
 
 const headers = {
     "Accept": "application/json, text/plain, */*",
@@ -56,11 +57,13 @@ class WebSocketClient {
         this.token = token;
         this.proxy = proxy;
         this.socket = null;
+        this.signature = null;
+        this.timestamp = null;
+        this.url = null;
         this.reconnectInterval = reconnectInterval;
         this.shouldReconnect = true;
         this.agent = newAgent(proxy)
         this.uuid = uuid;
-        this.url = `wss://api.mygate.network/socket.io/?nodeId=${this.uuid}&EIO=4&transport=websocket`;
         this.regNode = `40{"token":"Bearer ${this.token}"}`;
         this.headers = {
             "Accept-encoding": "gzip, deflate, br, zstd",
@@ -77,12 +80,22 @@ class WebSocketClient {
     }
 
     connect() {
-        if (!this.uuid || !this.url) {
-            log.error("Cannot connect: Node is not registered.");
+        if (!this.uuid) {
+            log.error("Cannot connect: Node is not found.");
             return;
         }
 
         log.info("Attempting to connect:", this.uuid);
+        const sign = getSignature({ nodeId: this.uuid });
+        this.signature = sign.signature;
+        this.timestamp = sign.timestamp;
+        this.url = `wss://api.mygate.network/socket.io/?nodeId=${this.uuid}&signature=${this.signature}&timestamp=${this.timestamp}&version=2&EIO=4&transport=websocket`;
+
+        if (!this.signature) {
+            log.error(`Failed To get signature...`)
+            return;
+        }
+
         this.socket = new WebSocket(this.url, { headers: this.headers, agent: this.agent });
 
         this.socket.onopen = () => {
