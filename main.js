@@ -402,7 +402,7 @@ async function main() {
 
                 setInterval(() => {
                     client.disconnect();
-                }, 10 * 60 * 1000); // Auto reconnect node every 10 minutes
+                }, 10 * 60 * 1000); // Auto reconnect node every 10 minutes 
             }));
 
             await checkQuests(token, proxy);
