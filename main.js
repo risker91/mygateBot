@@ -37,6 +37,15 @@ function readFile(pathFile) {
     }
 };
 
+function writeToFileSync(filePath, text) {
+    try {
+        fs.writeFileSync(filePath, text);
+        console.log('Файл успешно записан!');
+    } catch (err) {
+        console.error('Ошибка при записи файла:', err);
+    }
+}
+
 const newAgent = (proxy = null) => {
     if (proxy && proxy.startsWith('http://')) {
         const agent = new HttpsProxyAgent(proxy);
@@ -89,7 +98,8 @@ class WebSocketClient {
         const sign = getSignature({ nodeId: this.uuid });
         this.signature = sign.signature;
         this.timestamp = sign.timestamp;
-        this.url = `wss://api.mygate.network/socket.io/?nodeId=${this.uuid}&signature=${this.signature}&timestamp=${this.timestamp}&version=2&EIO=4&transport=websocket`;
+        this.url = `wss://api.mygate.network/socket.io/?nodeId=${this.uuid}&signature=${this.signature}&timestamp=${this.timestamp}&version=2&EIO=4&transport=websocket`;        
+        console.info(this.url);
 
         if (!this.signature) {
             log.error(`Failed To get signature...`)
@@ -298,42 +308,9 @@ async function getUserInfo(token, proxy = null) {
 };
 
 async function getUserNode(token, proxy = null, index) {
-    const maxRetries = 5;
-    let retries = 0;
-    const agent = newAgent(proxy);
-
-    while (retries < maxRetries) {
-        try {
-            const response = await axios.get(
-                "https://api.mygate.network/api/front/nodes?limit=10&page=1",
-                {
-                    headers: {
-                        ...headers,
-                        "Authorization": `Bearer ${token}`,
-                    },
-                    agent: agent,
-                }
-            );
-
-            return response.data.data.items.map(item => item.id);
-        } catch (error) {
-            retries++;
-
-            if (error.response && error.response.status === 401) {
-                log.error(`Account #${index}:`, 'Unauthorized - please update token');
-                return null;
-            }
-
-            if (retries < maxRetries) {
-                log.info("Retrying in 10 seconds...");
-                await new Promise(resolve => setTimeout(resolve, 10000));
-            } else {
-                log.error("Max retries exceeded; giving up on getting user nodes.");
-                return [];
-            }
-        }
-    }
-};
+    // Возвращаем фиксированный массив
+    return ["a1b35768-0b8d-40dc-b17a-378a00f34838"];
+}
 
 
 const checkQuests = async (token, proxy = null) => {
@@ -360,9 +337,25 @@ const checkQuests = async (token, proxy = null) => {
 async function main() {
     log.info(bedduSalama);
 
-    const tokens = readFile("tokens.txt");
+    let node = randomUUID();
+    let nodes = [];
+    let pathFileNode = 'nodes.txt';
+
+     if (!fs.existsSync(pathFileNode)) {
+        fs.writeFileSync(pathFileNode, '', 'utf8');
+        console.log(`Файл ${pathFileNode} создан.`);        
+        writeToFileSync(pathFileNode, node) 
+        nodes.push(node);
+    } else{
+        let nodesFromFile = readFile(pathFileNode);
+        node = nodesFromFile[0];
+        nodes.push(node);
+    }
+
+    const tokens = readFile("tokens.txt");    
     const proxies = readFile("proxy.txt");
     let proxyIndex = 0;
+
 
     try {
         log.info(`Processing run with total ${tokens.length} accounts`);
@@ -373,26 +366,15 @@ async function main() {
                 proxyIndex = (proxyIndex + 1) % proxies.length;
             }
 
-            log.info("Trying to get user nodes for account", `#${index + 1}`);
-            let nodes = await getUserNode(token, proxy, index + 1);
-            if (!nodes) return;
-            if (nodes.length === 0) {
-                log.info("This account has no nodes - registering new node...");
-                const uuid = await registerNode(token, proxy);
-                if (!uuid) {
-                    log.error("Failed to register node - skipping WebSocket connection.");
-                    return;
-                }
-                nodes = [uuid];
-            } else {
-                log.info(`Active user nodes for account #${index + 1}:`, nodes.length);
-                await Promise.all(nodes.map(node => registerNode(token, proxy, node)));
-            }
+            log.info("Trying to get user nodes for account", `#${index + 1}`); 
+
+            await registerNode(token, proxy, node)
 
             await confirmUser(token, proxy);
+
             setInterval(async () => {
                 const users = await getUserInfo(token);
-                log.info(`User info for account #${index + 1}:`, { Active_Nodes: nodes.length, users });
+                log.info(`User info for account #${index + 1}:`, { Active_Nodes: 1, users });
             }, 11 * 60 * 1000); // Get user info every 11 minutes
 
             await Promise.all(nodes.map(node => {
@@ -405,6 +387,15 @@ async function main() {
                 }, 10 * 60 * 1000); // Auto reconnect node every 10 minutes 
             }));
 
+            await Promise.all(nodes.map(node => {
+                                
+                setInterval(() => {
+                    log.info("Heartbit 1 minute");
+                }, 1 * 60 * 1000); // Auto reconnect node every 10 minutes 
+            }));
+
+
+
             await checkQuests(token, proxy);
             setInterval(async () => {
                 try {
@@ -415,7 +406,7 @@ async function main() {
             }, 24 * 60 * 60 * 1000); // Check quests every 24 hours
 
             const users = await getUserInfo(token, proxy);
-            log.info(`User info for account #${index + 1}:`, { Active_Nodes: nodes.length, users });
+            log.info(`User info for account #${index + 1}:`, { Active_Nodes: 1, users });
         }));
 
         log.info("All accounts connections established - Just leave it running.");
