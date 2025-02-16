@@ -85,6 +85,12 @@ sudo systemctl enable mygate
 sudo systemctl status mygate
 ```
 
+See logs realtime
+```sh
+```sh
+sudo journalctl -u mygate -f
+```
+
 ## ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 This project is licensed under the [MIT License](LICENSE).
