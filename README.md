@@ -52,8 +52,9 @@ To ensure MyGate runs continuously, set it up as a systemd service. Create a ser
 
 ```sh
 sudo nano /etc/systemd/system/mygate.service
-
 ```
+
+```sh
 [Unit]
 Description=MyGate
 After=network.target
