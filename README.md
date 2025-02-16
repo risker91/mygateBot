@@ -87,7 +87,6 @@ sudo systemctl status mygate
 
 See logs realtime
 ```sh
-```sh
 sudo journalctl -u mygate -f
 ```
 
