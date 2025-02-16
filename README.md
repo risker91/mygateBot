@@ -46,6 +46,44 @@
     npm run start
     ```
 
+## Running MyGate as a Systemd Service  
+
+To ensure MyGate runs continuously, set it up as a systemd service. Create a service file using:  
+
+```sh
+sudo nano /etc/systemd/system/mygate.service
+
+```
+[Unit]
+Description=MyGate
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/npm run start
+WorkingDirectory=/root/mygateBot
+Restart=always
+User=root
+Group=root
+Environment=PATH=/usr/bin:/usr/local/bin
+Environment=NODE_ENV=production
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=mygate
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```sh
+sudo systemctl daemon-reload
+sudo systemctl start mygate
+sudo systemctl enable mygate
+```
+
+```sh
+sudo systemctl status mygate
+```
+
 ## ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 This project is licensed under the [MIT License](LICENSE).
