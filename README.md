@@ -4,30 +4,27 @@
 
 ## Features
 
-- **Auto Generate Node ID**
-- **Auto Connect/ping Node**
-- **Auto Reconnect Node**
+- **Auto Register Node**
+- **Maintain Node Operation**
 
-- **Support multiple accounts**
-- **Support Proxy usage**
-- **For Now Its Not Supported Creating Multiple Nodes for one account**
+- **Supports a Single Node Only**
+- **Supports Proxy Usage**
+- **Multiple Accounts Supported**
 
 ## Prerequisites
 
 - Node.js installed on your machine
-- `tokens.txt` file containing token my-gate platform follow instruction below to get:
-- Open my-gate platform [https://mygate.network/](https://app.mygate.network/login?code=LfBWAQ)
-- Login With your gmail
-- inspect or just F12, and find Network
-- copy the token and save it in `tokens.txt` 
-
-    ![token](image-1.png)!
+- `tokens.txt` file containing your MyGate platform token. Follow the instructions below to obtain it:
+  - Open [MyGate platform](https://app.mygate.network/login?code=TyaDsk)
+  - Log in with your Gmail account
+  - Open Developer Tools (F12) and navigate to the Network tab
+  - Copy the token and save it in `tokens.txt`
 
 ## Installation
 
 1. Clone the repository:
     ```sh
-    git clone https://github.com/Zlkcyber/mygateBot.git
+    git clone https://github.com/risker91/mygateBot.git
     cd mygateBot
     ```
 
